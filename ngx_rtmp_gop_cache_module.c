@@ -456,6 +456,17 @@ ngx_rtmp_gop_cache_frame(ngx_rtmp_session_t *s, ngx_uint_t prio,
         return;
     }
 
+
+
+    if (ctx->pool == NULL) {
+        ngx_log_debug4(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
+           "gop cache: no pool when cache packet type='%s' timestamp='%uD' stream='%*s'",
+           ch->type == NGX_RTMP_MSG_AUDIO ? "audio" : "video",
+           ch->timestamp, s->stream.len, s->stream.data);
+        return NGX_OK;
+    }
+
+
     if (ch->type == NGX_RTMP_MSG_VIDEO) {
         // drop video when not H.264
         if (codec_ctx->video_codec_id != NGX_RTMP_VIDEO_H264) {
@@ -511,8 +522,8 @@ ngx_rtmp_gop_cache_frame(ngx_rtmp_session_t *s, ngx_uint_t prio,
         (ctx->video_frame_in_all + ctx->audio_frame_in_all)
         > gacf->gop_max_frame_count)
     {
-        ngx_log_error(NGX_LOG_WARN, s->connection->log, 0,
-               "gop cache: video_frame_in_cache='%uD' "
+        ngx_log_error(NGX_LOG_ERR, s->connection->log, 0,
+               "gop cache: overflow video_frame_in_cache='%uD' "
                "audio_frame_in_cache='%uD' max_video_count='%uD' "
                "max_audio_count='%uD' gop_max_frame_count='%uD'",
                ctx->video_frame_in_all, ctx->audio_frame_in_all,
