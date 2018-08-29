@@ -715,7 +715,7 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
                 if (mandatory) {
                     ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                                 "live: gop mandatory packet failed");
-                    ngx_rtmp_finalize_session(ss);
+                    ngx_rtmp_finalize_session(s);
                     return;
                 }
                 if (pkt) {
