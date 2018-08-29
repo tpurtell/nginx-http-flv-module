@@ -691,7 +691,7 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
             mandatory = 0;
             if (codec_ctx) {
 
-                if (ch->type == NGX_RTMP_MSG_AUDIO) {
+                if (ch.type == NGX_RTMP_MSG_AUDIO) {
                     if (codec_ctx->audio_codec_id == NGX_RTMP_AUDIO_AAC &&
                         ngx_rtmp_is_codec_header(pkt))
                     {
@@ -713,7 +713,7 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
                 cs->dropped += delta;
 
                 if (mandatory) {
-                    ngx_log_debug0(NGX_LOG_DEBUG_RTMP, ss->connection->log, 0,
+                    ngx_log_debug0(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
                                 "live: gop mandatory packet failed");
                     ngx_rtmp_finalize_session(ss);
                     return;
