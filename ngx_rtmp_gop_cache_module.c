@@ -561,6 +561,8 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
     ngx_rtmp_live_chunk_stream_t       *cs;
     ngx_rtmp_live_proc_handler_t       *handler;
     ngx_http_request_t                 *r;
+    ngx_rtmp_codec_ctx_t               *codec_ctx;
+    int                                 mandatory;
 
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
@@ -573,6 +575,12 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
         ctx->stream->pub_ctx == NULL || !ctx->stream->publishing) {
         return;
     }
+
+    codec_ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_codec_module);
+    if (codec_ctx == NULL) {
+        return;
+    }
+
 
     pkt = NULL;
     apkt = NULL;
@@ -680,13 +688,46 @@ ngx_rtmp_gop_cache_send(ngx_rtmp_session_t *s)
                 return;
             }
 
+            mandatory = 0;
+            if (codec_ctx) {
+
+                if (ch->type == NGX_RTMP_MSG_AUDIO) {
+                    if (codec_ctx->audio_codec_id == NGX_RTMP_AUDIO_AAC &&
+                        ngx_rtmp_is_codec_header(pkt))
+                    {
+                        mandatory = 1;
+                    }
+
+                } else {
+                    if (codec_ctx->video_codec_id == NGX_RTMP_VIDEO_H264 &&
+                        ngx_rtmp_is_codec_header(pkt))
+                    {
+                        mandatory = 1;
+                    }
+                }
+            }
+
             if (handler->send_message_pt(s, pkt, gf->prio) != NGX_OK) {
                 ++pub_ctx->ndropped;
 
                 cs->dropped += delta;
 
-                ngx_rtmp_finalize_session(s);
-                return;
+                if (mandatory) {
+                    ngx_log_debug0(NGX_LOG_DEBUG_RTMP, ss->connection->log, 0,
+                                "live: gop mandatory packet failed");
+                    ngx_rtmp_finalize_session(ss);
+                    return;
+                }
+                if (pkt) {
+                    handler->free_message_pt(s, pkt);
+                    pkt = NULL;
+                }
+
+                if (apkt) {
+                    handler->free_message_pt(s, apkt);
+                    apkt = NULL;
+                }                
+                continue;
             }
 
             ngx_log_debug4(NGX_LOG_DEBUG_RTMP, s->connection->log, 0,
